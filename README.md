@@ -1,99 +1,94 @@
-# IG 抽獎留言自動抓取工具
+# IG 抽獎小工具
 
-只抓「自己管理的 IG 專業帳號」貼文留言,自動篩選 hashtag。有兩種用法:
+抽獎名單交集 + 公平抽獎工具,搭配 Meta Business Suite 人工匯出留言、人工複製按讚/私訊名單使用。
 
-- **`index.html`(推薦)**:貼上貼文網址就能自動抓留言 + 現場抽獎,一站完成。可以雙擊在本機開,也已經放上 GitHub Pages,任何電腦打開網址就能用:**https://abbyupyoung-cloud.github.io/ig-giveaway-tool/**。Token 是你自己貼進網頁欄位、存在瀏覽器的 localStorage,檔案本身不含任何密鑰,repo 公開也沒有洩漏風險。因為頁面會要求輸入 Access Token,只在這個你自己管理、能確認程式碼沒被竄改的網址使用,不要把 Token 貼到其他來路不明的網站。
-- **`fetch-comments.ps1`(備援)**:如果本機版因為瀏覽器擋下跨網域請求而抓取失敗,改用 PowerShell 腳本抓,輸出 CSV 後貼到雲端版[開獎台](https://claude.ai/code/artifact/3d456d86-e0b3-4537-a5da-21dc0e1ecacc)。
+## 目前結論:留言自動抓取行不通,改用人工匯出
 
-兩種都需要先完成下面的「一次性設定」拿到 Access Token 和 IG User ID。
+**曾經嘗試過用 Instagram API 自動抓留言,結論是走不通,不是操作問題,是 Meta 平台限制:**
 
-**重要更正**:因為這個工具只給你自己(@duralextaiwan 的管理者)用,**不需要送 Meta App 審查、也不需要商業驗證**。App 審查只有在你想讓「其他不相關的人」透過你的 App 存取*他們自己*的帳號時才需要。你自己的帳號留在 App 的「開發模式」、把自己設為 App 的管理員/開發人員,就能無限期使用這些權限 —— 不會過期(權杖本身會過期,但重新產生不需要再審查一次)。
+- 申請了 Meta App、把帳號加為 Instagram 測試人員、拿到含 `instagram_business_manage_comments` 權限的 Access Token
+- 但呼叫 `/comments` API,對**任何**貼文都回傳空陣列,即使 `comments_count` 顯示真的有上百則留言
+- 這代表:雖然權限「有給」,但要真正**讀到**既有留言,還得再送 **Meta App Review 申請 Advanced Access**,需要人工審核、通常要等好幾天到幾週,而且不保證過
+- 因為只是自己用、只抓自己帳號的留言,沒必要為此走一次正式審查
 
-## 限制(API 本來就抓不到的東西)
+**所以留言名單改成跟按讚、私訊一樣,用 Meta Business Suite 人工匯出/複製**,詳見下方「每次活動的使用流程」。
 
-- **按讚名單**:Instagram Graph API 不提供「誰按讚」的清單,只有讚數。這輩子只能人工點開「查看 N 人喜歡」複製。
-- **私訊次數**:只能讀「自己商業帳號收到」的訊息,而且要另外申請 `instagram_manage_messages` 權限並走審查,設定成本很高。目前這套工具**沒有**做私訊自動抓,私訊名單仍需人工從收件匣清點後貼進開獎台。
+工具本身([index.html](https://abbyupyoung-cloud.github.io/ig-giveaway-tool/)、`fetch-comments.ps1` 等)還留著、程式碼是對的,如果哪天決定要送 App Review 申請 Advanced Access,設定步驟在下面「(進階/暫不可用)API 自動抓取設定」保留供參考。
 
-## 一次性設定(之後每場活動不用重做)
+## 限制(API 本來就抓不到 / 已確認走不通的東西)
+
+- **按讚名單**:Instagram API 不提供「誰按讚」的清單,只有讚數,只能人工點開「查看 N 人喜歡」複製。
+- **私訊次數**:只能讀自己商業帳號收到的訊息,一樣需要 Advanced Access,私訊名單需人工從收件匣清點。
+- **留言名單**:如上,API 技術上抓得到但實際資料被 Standard Access 擋住,改用人工匯出。
+
+## 每次活動的使用流程(人工匯出版)
+
+1. **留言**:登入 [business.facebook.com](https://business.facebook.com)(Meta Business Suite)→ 找到目標貼文 → 留言區可以看到全部留言,依 hashtag 篩選/搜尋,把帳號複製下來。
+2. **按讚**:到該貼文點開「查看 N 人喜歡」,把帳號人工複製下來。
+3. **私訊(2次)**:去 IG 私訊收件匣人工清點,篩出符合條件的帳號。
+4. 打開 [開獎台(index.html)](https://abbyupyoung-cloud.github.io/ig-giveaway-tool/),把三份名單分別貼進「留言名單」「按讚名單」「私訊名單」欄位(每行一個帳號,前面加不加 @ 都可以)。
+5. 右邊「符合資格名單」會即時顯示三項交集,填好獎項名稱、抽出人數,按「開始抽獎」。
+6. 名單和抽獎紀錄會存在瀏覽器的 localStorage,下次打開還在。
+
+---
+
+## (進階/暫不可用)API 自動抓取設定
+
+以下是留言自動抓取原本的完整設定紀錄,**目前卡在 Meta Advanced Access 審查,不建議照做**,除非你決定要送 App Review 並願意等審核。
 
 這套工具走的是 Meta 目前的「**Instagram API with Instagram Login**」流程(不用連 Facebook 粉專),權杖開頭是 `IGAAT...`,呼叫網址是 `graph.instagram.com`(不是 `graph.facebook.com`,那是給另一套走 Facebook 登入的舊系統用的,兩邊權杖不通用)。
 
-1. **確認 IG 帳號是專業帳號**:IG App → 設定 → 帳號類型 → 切換成「專業帳號」(商業或創作者皆可,不需要連 Facebook 粉專)。
+1. **確認 IG 帳號是專業帳號**:IG App → 設定 → 帳號類型 → 切換成「專業帳號」(商業或創作者皆可)。
 
-2. **建立 Meta App**:前往 [developers.facebook.com](https://developers.facebook.com) → 我的應用程式 → 建立應用程式 → 類型選「商業」。
+2. **建立 Meta App**:[developers.facebook.com](https://developers.facebook.com) → 我的應用程式 → 建立應用程式 → 類型選「商業」。
 
-3. **新增使用案例**:在 App 控制台左側點「使用案例」,選「**管理 Instagram 的訊息和內容**」(圖示是 IG 那個,不是 Messenger 或 WhatsApp),按繼續。這步會自動幫你加上 `instagram_business_basic`、`instagram_business_manage_comments`、`instagram_business_manage_messages` 三個權限。
+3. **新增使用案例**:App 控制台左側「使用案例」→ 選「**管理 Instagram 的訊息和內容**」→ 繼續。會自動加上 `instagram_business_basic`、`instagram_business_manage_comments`、`instagram_business_manage_messages` 三個權限。
 
-4. **把你的 IG 帳號加為測試人員**(Development 模式下,只有被加為 Tester 的帳號能授權):
-   - App 後台左側「應用程式角色」→「角色」→「新增人員」
-   - 角色選「**Instagram 測試人員**」(不是上面那個籠統的「測試人員」)
-   - 搜尋欄輸入你的 IG 帳號(例如 `duralextaiwan`)送出邀請
-   - **手機**打開 Instagram App(網頁版沒有這個選項)→ 設定與隱私 → 應用程式和網站 → 測試人員邀請 → 接受
+4. **把 IG 帳號加為測試人員**:
+   - App 後台「應用程式角色」→「角色」→「新增人員」→ 角色選「**Instagram 測試人員**」→ 搜尋你的 IG 帳號送出邀請
+   - **手機** Instagram App → 設定與隱私 → 應用程式和網站 → 測試人員邀請 → 接受(網頁版沒有這個選項)
 
-5. **產生權杖**:回 App 後台「使用案例」→ Instagram 使用案例畫面「2. 產生存取權杖」→「新增帳號」,跳出的 IG 授權彈窗選你的帳號、按繼續。
-   - **已知 bug**:這個彈窗常常在「選帳號→繼續」之後直接跳回 IG 首頁,完全不會出現列出「留言/私訊」權限、要你按「允許」的同意畫面——這樣拿到的 Token 只有帳號基本資料權限,呼叫留言 API 會回空值(即使 App 後台顯示該權限「可供測試」也一樣,因為問題出在使用者實際同意的範圍不夠,不是 App 設定)。換瀏覽器/無痕視窗重試偶爾有用,但不保證。
-   - **如果按鈕流程一直失敗,改用下面「手動授權(繞過按鈕 bug)」的方法**,成功率高很多。
-   - 這個 Token 效期較短(約 1 小時),要換長效的話呼叫:
+5. **產生權杖**:App 後台「使用案例」→ Instagram 使用案例畫面「2. 產生存取權杖」→「新增帳號」。
+   - **已知 bug**:這個彈窗常常在選帳號後直接跳回 IG 首頁,看不到列出權限的同意畫面,拿到的 Token 就只有基本資料權限。**卡住的話改用下面「手動授權」方法**,成功率高很多。
+   - 短效 Token(約1小時)換長效(約60天):
      ```
-     GET https://graph.instagram.com/access_token
-         ?grant_type=ig_exchange_token
-         &client_secret={App Secret,在「應用程式設定→基本資料」找}
-         &access_token={剛剛產生的短效token}
+     GET https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret={App Secret}&access_token={短效token}
      ```
-     回傳的 `access_token` 效期約 60 天。快到期前用這支延長(不用重新走授權):
+     快到期前延長(不用重新授權):
      ```
-     GET https://graph.instagram.com/refresh_access_token
-         ?grant_type=ig_refresh_token
-         &access_token={目前的長效token}
+     GET https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token={長效token}
      ```
 
-6. **找出 IG User ID**(注意:App 後台表格顯示的那組 ID 不是這裡要用的):
+6. **找出 IG User ID**(App 後台表格顯示的 ID 不是這個):
    ```
    GET https://graph.instagram.com/v21.0/me?fields=id,username&access_token={你的token}
    ```
-   回傳的 `id` 才是要填進工具的 IG User ID。
 
-## 手動授權(繞過按鈕 bug)
+### 手動授權(繞過按鈕 bug)
 
-如果第 5 步的「新增帳號」按鈕一直讓你彈回 IG 首頁、拿不到有留言權限的 Token,改用這個方法——原理一樣,只是不透過 App 後台那個有 bug 的彈窗,直接組一個授權網址自己在瀏覽器打開:
-
-1. **註冊 Redirect URI**:App 後台「使用案例」→ Instagram 使用案例畫面「4. 設定 Instagram 商家登入」→「設定」,找到「有效的 OAuth 重新導向 URI」欄位,加入:
+1. **註冊 Redirect URI**:「使用案例」→ Instagram 使用案例「4. 設定 Instagram 商家登入」→「設定」→「有效的 OAuth 重新導向 URI」加入:
    ```
    https://abbyupyoung-cloud.github.io/ig-giveaway-tool/
    ```
-   存檔。
 
-2. **組授權網址,直接貼在瀏覽器網址列打開**(不要用彈窗、不要用按鈕點出來,整條網址複製貼上按 Enter):
+2. **直接在瀏覽器網址列打開**(不透過按鈕):
    ```
    https://www.instagram.com/oauth/authorize?client_id=1348796017242096&redirect_uri=https://abbyupyoung-cloud.github.io/ig-giveaway-tool/&response_type=code&scope=instagram_business_basic,instagram_business_manage_comments,instagram_business_manage_messages
    ```
-   （`client_id` 是 Instagram 應用程式編號,如果你的 App 編號不同,換成你自己的）
 
-3. 這次應該會正常看到列出「留言/私訊」權限的同意畫面,按允許。同意後瀏覽器會跳轉到 `https://abbyupyoung-cloud.github.io/ig-giveaway-tool/?code=一長串英數字#_`,把網址列裡 `code=` 後面那一串(結尾的 `#_` 不用管)複製起來。
+3. 同意後網址列會變成 `...?code=一串英數字#_`,複製 `code=` 後面那段。
 
-4. 用 `exchange-code.ps1` 在本機把 code 換成 Token(App Secret 只留在你自己電腦,不會傳給任何人):
+4. 本機執行(App Secret 只留在自己電腦):
    ```powershell
-   .\exchange-code.ps1 -Code "剛剛複製的code" -AppId "1348796017242096" -AppSecret "在應用程式設定→基本資料找,按顯示"
+   .\exchange-code.ps1 -Code "剛複製的code" -AppId "1348796017242096" -AppSecret "應用程式設定→基本資料裡按顯示"
    ```
-   跑完會印出 Token,以及這組 Token **實際拿到哪些權限**——一定要確認 `instagram_business_manage_comments` 有在清單裡,腳本會自動幫你檢查並提示。
+   會印出 Token 和**實際拿到的權限清單**,`instagram_business_manage_comments` 有出現不代表留言讀得到——如前述,還需要 Advanced Access 審查通過才真正讀得到資料。
 
-## 每次活動的使用流程(推薦:本機版一站完成)
+### PowerShell 備援腳本(同樣卡在 Advanced Access)
 
-1. 打開 https://abbyupyoung-cloud.github.io/ig-giveaway-tool/(或雙擊本機的 `index.html`)。
-2. 在「留言名單」卡片裡貼上 Access Token、IG User ID、貼文網址(例如 `https://www.instagram.com/p/DcH2A2nTthL/`),要篩選 hashtag 就填,不用就留空。
-3. 按「抓取留言」——它會先在你最近 300 則貼文裡比對網址找出 Media ID,再抓該貼文全部留言,自動篩選、填入留言名單。
-4. 按讚名單、私訊(2次)名單一樣人工複製貼上。
-5. 右邊「符合資格名單」會即時顯示三項交集,填好獎項名稱、抽出人數,按「開始抽獎」。
-6. Token / IG User ID / 名單都會存在這台電腦的瀏覽器裡,下次打開還在。
-
-如果按「抓取留言」出現「瀏覽器擋下跨網域請求」之類的錯誤,改用備援流程:
-
-1. 在這個資料夾按右鍵「用 VS Code 開啟」。
-2. 按 `Ctrl+Shift+P` → 打「Run Task」→ 選 **「IG抽獎: 找 Media ID」**,依提示貼權杖、貼 IG User ID,會列出最近貼文的 Media ID 和連結,比對出目標貼文那筆。
-3. 再跑一次「Run Task」→ 選 **「IG抽獎: 抓留言」**,貼權杖、貼上一步找到的 Media ID、輸入要篩選的 hashtag,會在資料夾產生 `comments.csv`。
-4. 打開 `comments.csv`,把整欄 `username` 複製起來,貼進 [index.html](https://abbyupyoung-cloud.github.io/ig-giveaway-tool/) 或雲端版[開獎台](https://claude.ai/code/artifact/3d456d86-e0b3-4537-a5da-21dc0e1ecacc)的「留言名單」欄位(有標題列沒關係,工具會自動忽略)。
+`fetch-comments.ps1`、`find-media-id.ps1` 邏輯正確,但一樣會因為 Advanced Access 未過審而抓回空結果,先不建議使用,保留供以後審查過了再用。
 
 ## 安全提醒
 
-- Access Token 等同帳號密碼,**不要貼到聊天記錄、不要 commit 進任何版本控制**。只在跑腳本時貼在 VS Code 的輸入框裡(有加密顯示 `password: true`),用完就好。
-- 懷疑權杖外洩時,回 Graph API Explorer 重新 Generate 一次會讓舊權杖失效。
+- Access Token / App Secret 等同帳號密碼,**不要貼到聊天記錄、不要 commit 進任何版本控制**。
+- 懷疑權杖外洩時,回 App 後台重新產生一次會讓舊權杖失效。
