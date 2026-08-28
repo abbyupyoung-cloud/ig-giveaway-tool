@@ -1,0 +1,57 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "igAccessToken",
+      "type": "promptString",
+      "description": "Instagram Graph API 存取權杖(見 README.md)",
+      "password": true
+    },
+    {
+      "id": "igUserId",
+      "type": "promptString",
+      "description": "IG 專業帳號的 Instagram User ID(只有『找 Media ID』任務需要)"
+    },
+    {
+      "id": "igMediaId",
+      "type": "promptString",
+      "description": "目標貼文的 Media ID(只有『抓留言』任務需要)"
+    },
+    {
+      "id": "igHashtag",
+      "type": "promptString",
+      "description": "篩選用的 hashtag,可留空",
+      "default": ""
+    }
+  ],
+  "tasks": [
+    {
+      "label": "IG抽獎: 找 Media ID",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}/find-media-id.ps1",
+        "-AccessToken", "${input:igAccessToken}",
+        "-IgUserId", "${input:igUserId}"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "IG抽獎: 抓留言",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}/fetch-comments.ps1",
+        "-AccessToken", "${input:igAccessToken}",
+        "-MediaId", "${input:igMediaId}",
+        "-Hashtag", "${input:igHashtag}",
+        "-OutCsv", "${workspaceFolder}/comments.csv"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

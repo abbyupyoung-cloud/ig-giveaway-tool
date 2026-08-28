@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>開獎台(本機版)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #EEF1F0;
+    --surface: #FFFFFF;
+    --surface-sunken: #E4E8E7;
+    --ink: #17201F;
+    --ink-muted: #566361;
+    --ink-faint: #8B9694;
+    --accent: #146F68;
+    --accent-strong: #0E524D;
+    --accent-soft: #DCEBE8;
+    --gold: #B8842E;
+    --gold-soft: #F3E6C9;
+    --warn: #A6432F;
+    --warn-soft: #F4E0DA;
+    --border: #D3D9D7;
+    --shadow: 0 1px 2px rgba(23,32,31,0.06), 0 8px 24px rgba(23,32,31,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101615;
+      --surface: #1A2322;
+      --surface-sunken: #131B1A;
+      --ink: #E9EEEC;
+      --ink-muted: #9DABA8;
+      --ink-faint: #6B7876;
+      --accent: #4FC6BC;
+      --accent-strong: #79DAD1;
+      --accent-soft: #1C3532;
+      --gold: #E3B75C;
+      --gold-soft: #3A2F17;
+      --warn: #E28870;
+      --warn-soft: #3A211C;
+      --border: #2A3534;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101615;
+    --surface: #1A2322;
+    --surface-sunken: #131B1A;
+    --ink: #E9EEEC;
+    --ink-muted: #9DABA8;
+    --ink-faint: #6B7876;
+    --accent: #4FC6BC;
+    --accent-strong: #79DAD1;
+    --accent-soft: #1C3532;
+    --gold: #E3B75C;
+    --gold-soft: #3A2F17;
+    --warn: #E28870;
+    --warn-soft: #3A211C;
+    --border: #2A3534;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .ticket-num, .count, .stage-tile, .eyebrow-num {
+    font-family: "Big Shoulders Display", "IBM Plex Sans", "Noto Sans TC", sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  .mono { font-family: "IBM Plex Mono", "Noto Sans TC", monospace; }
+
+  a { color: var(--accent-strong); }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 28px 20px 64px;
+  }
+
+  header.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  header.top h1 {
+    font-family: "Big Shoulders Display", sans-serif;
+    font-weight: 800;
+    font-size: clamp(32px, 5vw, 44px);
+    letter-spacing: 0.01em;
+    margin: 0;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+  header.top .tagline {
+    color: var(--ink-muted);
+    font-size: 14px;
+    max-width: 50ch;
+  }
+  header.top .totals {
+    display: flex;
+    gap: 22px;
+  }
+  .total-stat { text-align: right; }
+  .total-stat .n {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--accent-strong);
+    line-height: 1;
+  }
+  .total-stat .l {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+
+  .trays { display: flex; flex-direction: column; gap: 14px; }
+  .tray { padding: 14px 16px 16px; }
+  .tray-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .tray-head label.switch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14.5px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .tray-head input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: var(--accent);
+  }
+  .tray-count {
+    font-size: 12px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .tray-count b { color: var(--accent-strong); font-variant-numeric: tabular-nums; }
+  .tray textarea {
+    width: 100%;
+    min-height: 92px;
+    resize: vertical;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--ink);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    padding: 9px 10px;
+  }
+  .tray textarea:disabled { opacity: 0.45; }
+  .tray textarea:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .tray-hint { font-size: 11.5px; color: var(--ink-faint); margin-top: 6px; }
+
+  .autofetch {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 7px;
+    padding: 10px 10px 11px;
+    margin-bottom: 10px;
+  }
+  .autofetch-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    margin-bottom: 7px;
+  }
+  .autofetch-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .autofetch-row:last-of-type { margin-bottom: 0; }
+  .autofetch input[type="text"], .autofetch input[type="password"] {
+    flex: 1;
+    min-width: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 6px 8px;
+    font-size: 12.5px;
+    font-family: "IBM Plex Mono", monospace;
+  }
+  .autofetch button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .autofetch button:hover { background: var(--accent-strong); }
+  .autofetch button:disabled { background: var(--ink-faint); cursor: not-allowed; }
+  .autofetch-status {
+    font-size: 11.5px;
+    color: var(--accent-strong);
+    margin-top: 6px;
+    min-height: 14px;
+  }
+  .autofetch-status.err { color: var(--warn); }
+
+  details.howto {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--ink-muted);
+  }
+  details.howto summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--ink);
+    list-style: none;
+  }
+  details.howto summary::-webkit-details-marker { display: none; }
+  details.howto summary::before {
+    content: "▸";
+    display: inline-block;
+    margin-right: 6px;
+    color: var(--accent);
+    transition: transform 0.15s;
+  }
+  details.howto[open] summary::before { transform: rotate(90deg); }
+  details.howto ol { margin: 10px 0 0; padding-left: 20px; }
+  details.howto li { margin-bottom: 6px; }
+
+  .stage-col { display: flex; flex-direction: column; gap: 18px; }
+
+  .manifest { padding: 16px 18px; }
+  .section-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .section-title h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    margin: 0;
+    font-weight: 600;
+  }
+  .manifest-list {
+    max-height: 220px;
+    overflow-y: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 2px;
+  }
+  .stub {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-soft);
+    border: 1px dashed var(--accent);
+    color: var(--accent-strong);
+    border-radius: 5px;
+    padding: 3px 8px 3px 6px;
+    font-size: 12.5px;
+  }
+  .stub .no { font-weight: 700; font-size: 11px; opacity: 0.75; }
+  .stub.spent { opacity: 0.4; text-decoration: line-through; }
+  .empty-note {
+    color: var(--ink-faint);
+    font-size: 13px;
+    padding: 6px 2px;
+  }
+
+  .draw-panel { padding: 18px 20px 20px; }
+  .draw-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 18px;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+  }
+  .field input[type="text"], .field input[type="number"] {
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 7px 9px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .field input[type="number"] { width: 84px; }
+  .field.grow { flex: 1 1 180px; }
+  .field.checky { flex-direction: row; align-items: center; gap: 7px; }
+  .field.checky label { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--ink-muted); }
+  .field.checky input { width: 15px; height: 15px; accent-color: var(--accent); }
+
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 9px 20px;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  button.primary:hover { background: var(--accent-strong); }
+  button.primary:disabled { background: var(--ink-faint); cursor: not-allowed; }
+  button.ghost {
+    background: transparent;
+    color: var(--ink-muted);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button.ghost:hover { border-color: var(--ink-faint); color: var(--ink); }
+
+  .stage {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-height: 84px;
+    align-items: center;
+    padding: 14px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+  }
+  .stage-empty { color: var(--ink-faint); font-size: 13px; }
+  .stage-tile {
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    min-width: 120px;
+    text-align: center;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,0.25);
+  }
+  .stage-tile.landed {
+    background: var(--gold);
+    color: #1c1400;
+  }
+
+  .history { padding: 16px 18px 18px; }
+  .round {
+    border-top: 1px solid var(--border);
+    padding: 10px 0;
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: baseline;
+    font-size: 13.5px;
+  }
+  .round:first-of-type { border-top: none; }
+  .round .prize { font-weight: 700; color: var(--accent-strong); min-width: 90px; }
+  .round .when { color: var(--ink-faint); font-size: 11.5px; }
+  .round .winners { display: flex; gap: 6px; flex-wrap: wrap; }
+  .round .winners span {
+    background: var(--gold-soft);
+    color: var(--gold);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-weight: 600;
+    font-size: 12.5px;
+  }
+
+  .export { padding: 14px 18px 18px; }
+  .export textarea {
+    width: 100%;
+    min-height: 60px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--ink);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    padding: 9px 10px;
+  }
+  .export .hint { font-size: 11.5px; color: var(--ink-faint); margin-top: 6px; }
+
+  .foot-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stage-tile { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>開獎台<span class="mono" style="font-size:14px; color:var(--ink-faint); font-weight:500;">・本機版</span></h1>
+      <div class="tagline">貼上貼文網址自動抓留言,按讚 / 私訊名單仍人工貼上,三項核對交集後公平抽出得獎者。</div>
+    </div>
+    <div class="totals">
+      <div class="total-stat">
+        <div class="n" id="totalQualified">0</div>
+        <div class="l">符合資格</div>
+      </div>
+      <div class="total-stat">
+        <div class="n" id="totalDrawn">0</div>
+        <div class="l">已抽出</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- LEFT: intake trays -->
+    <div class="stage-col trays">
+
+      <div class="card tray" data-tray="comment">
+        <div class="tray-head">
+          <label class="switch"><input type="checkbox" class="tray-on" checked> 留言名單</label>
+          <span class="tray-count">已解析 <b class="tray-n">0</b> 筆</span>
+        </div>
+
+        <div class="autofetch">
+          <div class="autofetch-title">貼網址自動抓取(呼叫 Instagram Graph API)</div>
+          <div class="autofetch-row">
+            <input type="password" id="igToken" placeholder="Access Token(只存在這台電腦的瀏覽器裡)">
+          </div>
+          <div class="autofetch-row">
+            <input type="text" id="igUserId" placeholder="IG User ID(見 README.md)">
+          </div>
+          <div class="autofetch-row">
+            <input type="text" id="postUrl" placeholder="貼文網址,例如 https://www.instagram.com/p/DcH2A2nTthL/">
+          </div>
+          <div class="autofetch-row">
+            <input type="text" id="hashtagFilter" placeholder="篩選 hashtag(可留空 = 抓全部留言)">
+            <button id="fetchBtn">抓取留言</button>
+          </div>
+          <div class="autofetch-status" id="fetchStatus"></div>
+        </div>
+
+        <textarea class="tray-input" placeholder="抓取成功會自動填入這裡;也可以自己每行貼一個帳號,或貼 CSV(自動取第一欄)"></textarea>
+        <div class="tray-hint">找不到貼文時,改用 find-media-id.ps1 找出 Media ID 後在上面「貼文網址」欄位直接貼 Media ID 也可以</div>
+      </div>
+
+      <div class="card tray" data-tray="like">
+        <div class="tray-head">
+          <label class="switch"><input type="checkbox" class="tray-on" checked> 按讚名單</label>
+          <span class="tray-count">已解析 <b class="tray-n">0</b> 筆</span>
+        </div>
+        <textarea class="tray-input" placeholder="每行一個帳號(IG 無官方按讚清單 API,需人工複製)"></textarea>
+        <div class="tray-hint">來源:點開貼文「查看 N 人喜歡」手動複製</div>
+      </div>
+
+      <div class="card tray" data-tray="dm">
+        <div class="tray-head">
+          <label class="switch"><input type="checkbox" class="tray-on" checked> 私訊(2次)名單</label>
+          <span class="tray-count">已解析 <b class="tray-n">0</b> 筆</span>
+        </div>
+        <textarea class="tray-input" placeholder="每行一個帳號(已在收件匣人工確認私訊達 2 次以上者)"></textarea>
+        <div class="tray-hint">來源:私訊收件匣人工清點,目前無 API 可自動抓</div>
+      </div>
+
+      <div class="card howto">
+        <details>
+          <summary>下次活動要換條件怎麼辦?</summary>
+          <ol>
+            <li>不需要某個條件時,取消勾選該框的核取方塊,它就不會列入資格判斷。</li>
+            <li>每個欄位貼上「一行一個帳號」即可,前面加不加 @ 都可以,貼 CSV 也只取第一欄。</li>
+            <li>Access Token / IG User ID 會存在這台電腦的瀏覽器裡,換一台電腦要重新貼一次。</li>
+            <li>資料會自動存在這台瀏覽器裡,下次打開網頁還在;要開新活動就直接清空重貼。</li>
+          </ol>
+        </details>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: manifest + draw stage -->
+    <div class="stage-col">
+
+      <div class="card manifest">
+        <div class="section-title">
+          <h2>符合資格名單</h2>
+        </div>
+        <div class="manifest-list" id="manifestList">
+          <div class="empty-note">尚未有符合三項條件的帳號 — 先在左側貼上名單。</div>
+        </div>
+      </div>
+
+      <div class="card draw-panel">
+        <div class="section-title"><h2>抽獎</h2></div>
+        <div class="draw-controls">
+          <div class="field grow">
+            <label for="prizeName">獎項名稱</label>
+            <input type="text" id="prizeName" placeholder="例如:頭獎・法國來回機票">
+          </div>
+          <div class="field">
+            <label for="drawCount">本輪抽出人數</label>
+            <input type="number" id="drawCount" value="1" min="1">
+          </div>
+          <div class="field checky">
+            <input type="checkbox" id="excludePrev" checked>
+            <label for="excludePrev">排除先前已中獎者</label>
+          </div>
+          <button class="primary" id="drawBtn">開始抽獎</button>
+        </div>
+
+        <div class="stage" id="stage">
+          <div class="stage-empty">按下「開始抽獎」查看結果</div>
+        </div>
+        <div class="foot-row">
+          <button class="ghost" id="clearHistoryBtn">清除全部紀錄</button>
+        </div>
+      </div>
+
+      <div class="card history">
+        <div class="section-title"><h2>本場紀錄</h2></div>
+        <div id="historyList">
+          <div class="empty-note">還沒有抽獎紀錄。</div>
+        </div>
+      </div>
+
+      <div class="card export">
+        <div class="section-title"><h2>得獎名單(可複製)</h2></div>
+        <textarea id="exportBox" readonly placeholder="抽獎後,所有中獎帳號會彙整在這裡,方便複製去公告或存檔。"></textarea>
+        <div class="hint">此工具不提供檔案下載,請直接全選複製到 Excel / 公告文案。</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORE_KEY = "draw-stage-local-v1";
+  var trays = Array.prototype.slice.call(document.querySelectorAll(".tray"));
+  var drawnHistory = []; // {prize, time, winners:[]}
+  var spentSet = new Set(); // lowercased handles already won (if excludePrev checked)
+
+  function parseList(raw) {
+    var seen = new Set();
+    var out = [];
+    raw.split(/\r?\n/).forEach(function (line) {
+      var first = line.split(",")[0];
+      var name = first.replace(/^["'\s@]+|["'\s]+$/g, "").trim();
+      if (!name) return;
+      if (/^username$/i.test(name)) return; // skip CSV header from fetch-comments.ps1
+      var key = name.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(name);
+    });
+    return out;
+  }
+
+  function getTrayState(tray) {
+    var on = tray.querySelector(".tray-on").checked;
+    var raw = tray.querySelector(".tray-input").value;
+    var list = parseList(raw);
+    tray.querySelector(".tray-n").textContent = list.length;
+    tray.querySelector(".tray-input").disabled = !on;
+    return { on: on, list: list, key: tray.getAttribute("data-tray") };
+  }
+
+  function computeQualified() {
+    var states = trays.map(getTrayState);
+    var active = states.filter(function (s) { return s.on; });
+    if (active.length === 0) return { qualified: [], active: active };
+
+    var maps = active.map(function (s) {
+      var m = new Map();
+      s.list.forEach(function (name) { m.set(name.toLowerCase(), name); });
+      return m;
+    });
+    var base = maps[0];
+    var qualified = [];
+    base.forEach(function (displayName, key) {
+      var inAll = maps.every(function (m) { return m.has(key); });
+      if (inAll) qualified.push(displayName);
+    });
+    qualified.sort(function (a, b) { return a.localeCompare(b, "zh-Hant"); });
+    return { qualified: qualified, active: active };
+  }
+
+  function renderManifest() {
+    var result = computeQualified();
+    var list = result.qualified;
+    document.getElementById("totalQualified").textContent = list.length;
+    var box = document.getElementById("manifestList");
+    box.innerHTML = "";
+    if (result.active.length === 0) {
+      box.innerHTML = '<div class="empty-note">三個條件都被取消勾選了 — 至少開啟一項。</div>';
+      return;
+    }
+    if (list.length === 0) {
+      box.innerHTML = '<div class="empty-note">目前沒有帳號同時符合所有已勾選的條件。</div>';
+      return;
+    }
+    list.forEach(function (name, i) {
+      var el = document.createElement("span");
+      var spent = spentSet.has(name.toLowerCase());
+      el.className = "stub" + (spent ? " spent" : "");
+      el.innerHTML = '<span class="no ticket-num">#' + (i + 1) + '</span> ' + escapeHtml(name);
+      box.appendChild(el);
+    });
+    saveState();
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // --- secure shuffle ---
+  function secureRandomInt(maxExclusive) {
+    var arr = new Uint32Array(1);
+    var limit = Math.floor(0xFFFFFFFF / maxExclusive) * maxExclusive;
+    var x;
+    do { crypto.getRandomValues(arr); x = arr[0]; } while (x >= limit);
+    return x % maxExclusive;
+  }
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = secureRandomInt(i + 1);
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function runDraw() {
+    var result = computeQualified();
+    var pool = result.qualified.filter(function (name) {
+      var excl = document.getElementById("excludePrev").checked;
+      return !(excl && spentSet.has(name.toLowerCase()));
+    });
+    var count = Math.max(1, parseInt(document.getElementById("drawCount").value, 10) || 1);
+    var prize = document.getElementById("prizeName").value.trim() || "未命名獎項";
+    var stage = document.getElementById("stage");
+
+    if (pool.length === 0) {
+      stage.innerHTML = '<div class="stage-empty">目前沒有可抽的候選人(名單是空的,或都已中過獎)。</div>';
+      return;
+    }
+    if (count > pool.length) count = pool.length;
+
+    var winners = shuffle(pool).slice(0, count);
+    stage.innerHTML = "";
+    var tiles = winners.map(function () {
+      var tile = document.createElement("div");
+      tile.className = "stage-tile";
+      tile.textContent = "…";
+      stage.appendChild(tile);
+      return tile;
+    });
+
+    document.getElementById("drawBtn").disabled = true;
+
+    if (reduceMotion) {
+      tiles.forEach(function (tile, i) {
+        tile.textContent = winners[i];
+        tile.classList.add("landed");
+      });
+      finishDraw(prize, winners);
+      return;
+    }
+
+    var cyclePool = result.qualified.length ? result.qualified : winners;
+    tiles.forEach(function (tile, idx) {
+      var ticks = 14 + idx * 4;
+      var delay = 45;
+      var t = 0;
+      var timer = setInterval(function () {
+        tile.textContent = cyclePool[secureRandomInt(cyclePool.length)];
+        t++;
+        if (t >= ticks) {
+          clearInterval(timer);
+          tile.textContent = winners[idx];
+          tile.classList.add("landed");
+          if (idx === tiles.length - 1) finishDraw(prize, winners);
+        }
+      }, delay);
+    });
+  }
+
+  function finishDraw(prize, winners) {
+    document.getElementById("drawBtn").disabled = false;
+    winners.forEach(function (w) { spentSet.add(w.toLowerCase()); });
+    drawnHistory.unshift({ prize: prize, time: new Date().toLocaleString("zh-TW", { hour12: false }), winners: winners });
+    document.getElementById("totalDrawn").textContent =
+      drawnHistory.reduce(function (n, r) { return n + r.winners.length; }, 0);
+    renderHistory();
+    renderManifest();
+    saveState();
+  }
+
+  function renderHistory() {
+    var box = document.getElementById("historyList");
+    if (drawnHistory.length === 0) {
+      box.innerHTML = '<div class="empty-note">還沒有抽獎紀錄。</div>';
+      document.getElementById("exportBox").value = "";
+      return;
+    }
+    box.innerHTML = "";
+    var exportLines = [];
+    drawnHistory.forEach(function (round) {
+      var row = document.createElement("div");
+      row.className = "round";
+      row.innerHTML =
+        '<span class="prize">' + escapeHtml(round.prize) + "</span>" +
+        '<span class="when mono">' + round.time + "</span>" +
+        '<span class="winners">' + round.winners.map(function (w) { return "<span>" + escapeHtml(w) + "</span>"; }).join("") + "</span>";
+      box.appendChild(row);
+      exportLines.push(round.prize + "：" + round.winners.join("、"));
+    });
+    document.getElementById("exportBox").value = exportLines.join("\n");
+  }
+
+  function saveState() {
+    try {
+      var data = {
+        trays: trays.map(function (tray) {
+          return {
+            key: tray.getAttribute("data-tray"),
+            on: tray.querySelector(".tray-on").checked,
+            text: tray.querySelector(".tray-input").value
+          };
+        }),
+        history: drawnHistory,
+        spent: Array.from(spentSet),
+        creds: {
+          token: document.getElementById("igToken").value,
+          igUserId: document.getElementById("igUserId").value
+        }
+      };
+      localStorage.setItem(STORE_KEY, JSON.stringify(data));
+    } catch (e) { /* private mode / storage unavailable — ignore */ }
+  }
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      (data.trays || []).forEach(function (t) {
+        var tray = trays.filter(function (el) { return el.getAttribute("data-tray") === t.key; })[0];
+        if (!tray) return;
+        tray.querySelector(".tray-on").checked = !!t.on;
+        tray.querySelector(".tray-input").value = t.text || "";
+      });
+      drawnHistory = data.history || [];
+      spentSet = new Set(data.spent || []);
+      if (data.creds) {
+        document.getElementById("igToken").value = data.creds.token || "";
+        document.getElementById("igUserId").value = data.creds.igUserId || "";
+      }
+      document.getElementById("totalDrawn").textContent =
+        drawnHistory.reduce(function (n, r) { return n + r.winners.length; }, 0);
+    } catch (e) { /* corrupt/unavailable storage — start fresh */ }
+  }
+
+  // --- Instagram Graph API auto-fetch ---
+  function normalizeUrl(u) {
+    return (u || "").trim()
+      .replace(/^https?:\/\//i, "")
+      .replace(/\/+$/, "")
+      .split("?")[0]
+      .toLowerCase();
+  }
+
+  async function graphGet(url) {
+    var res = await fetch(url);
+    var body = await res.json().catch(function () { return null; });
+    if (!res.ok) {
+      var msg = (body && body.error && body.error.message) || ("HTTP " + res.status);
+      throw new Error(msg);
+    }
+    return body;
+  }
+
+  async function findMediaId(token, igUserId, urlOrId) {
+    // if it already looks like a bare numeric media id, use it directly
+    if (/^\d{6,}$/.test(urlOrId.trim())) return urlOrId.trim();
+
+    var target = normalizeUrl(urlOrId);
+    var url = "https://graph.facebook.com/v20.0/" + encodeURIComponent(igUserId) +
+      "/media?fields=id,permalink&limit=100&access_token=" + encodeURIComponent(token);
+    var scanned = 0;
+    var maxScan = 300;
+    while (url && scanned < maxScan) {
+      var data = await graphGet(url);
+      var items = data.data || [];
+      for (var i = 0; i < items.length; i++) {
+        if (normalizeUrl(items[i].permalink) === target) return items[i].id;
+      }
+      scanned += items.length;
+      url = (data.paging && data.paging.next) ? data.paging.next : null;
+    }
+    return null;
+  }
+
+  async function fetchAllComments(token, mediaId) {
+    var all = [];
+    var url = "https://graph.facebook.com/v20.0/" + encodeURIComponent(mediaId) +
+      "/comments?fields=id,text,username,timestamp&limit=100&access_token=" + encodeURIComponent(token);
+    while (url) {
+      var data = await graphGet(url);
+      all = all.concat(data.data || []);
+      url = (data.paging && data.paging.next) ? data.paging.next : null;
+    }
+    return all;
+  }
+
+  function setStatus(msg, isErr) {
+    var el = document.getElementById("fetchStatus");
+    el.textContent = msg;
+    el.classList.toggle("err", !!isErr);
+  }
+
+  async function autoFetchComments() {
+    var token = document.getElementById("igToken").value.trim();
+    var igUserId = document.getElementById("igUserId").value.trim();
+    var postUrl = document.getElementById("postUrl").value.trim();
+    var hashtag = document.getElementById("hashtagFilter").value.trim().replace(/^#/, "");
+    var btn = document.getElementById("fetchBtn");
+
+    if (!token || !igUserId || !postUrl) {
+      setStatus("請填入 Access Token、IG User ID、貼文網址。", true);
+      return;
+    }
+
+    btn.disabled = true;
+    saveState();
+    try {
+      setStatus("比對貼文中…");
+      var mediaId = await findMediaId(token, igUserId, postUrl);
+      if (!mediaId) {
+        setStatus("在最近 300 則貼文裡找不到這個網址,請確認網址、或改用 find-media-id.ps1 找到 Media ID 直接貼在網址欄。", true);
+        return;
+      }
+      setStatus("找到貼文(Media ID: " + mediaId + "),抓取留言中…");
+      var comments = await fetchAllComments(token, mediaId);
+      var filtered = hashtag
+        ? comments.filter(function (c) { return c.text && c.text.indexOf(hashtag) !== -1; })
+        : comments;
+      var names = [];
+      var seen = new Set();
+      filtered.forEach(function (c) {
+        if (!c.username) return;
+        var key = c.username.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        names.push(c.username);
+      });
+      var textarea = document.querySelector('[data-tray="comment"] .tray-input');
+      textarea.value = names.join("\n");
+      textarea.dispatchEvent(new Event("input"));
+      setStatus("共 " + comments.length + " 則留言,符合條件 " + names.length + " 人,已填入留言名單。");
+    } catch (e) {
+      setStatus("抓取失敗:" + e.message + "(可能是權杖過期或無效、瀏覽器擋下跨網域請求;若持續失敗請改用 fetch-comments.ps1)", true);
+    } finally {
+      btn.disabled = false;
+      saveState();
+    }
+  }
+
+  trays.forEach(function (tray) {
+    tray.querySelector(".tray-on").addEventListener("change", renderManifest);
+    tray.querySelector(".tray-input").addEventListener("input", debounce(renderManifest, 150));
+  });
+  document.getElementById("drawBtn").addEventListener("click", runDraw);
+  document.getElementById("fetchBtn").addEventListener("click", autoFetchComments);
+  document.getElementById("clearHistoryBtn").addEventListener("click", function () {
+    if (!confirm("清除本場所有抽獎紀錄與已中獎名單?(左側貼上的名單不會被清除)")) return;
+    drawnHistory = [];
+    spentSet = new Set();
+    document.getElementById("totalDrawn").textContent = "0";
+    renderHistory();
+    renderManifest();
+    saveState();
+  });
+
+  function debounce(fn, ms) {
+    var t;
+    return function () {
+      clearTimeout(t);
+      var args = arguments;
+      t = setTimeout(function () { fn.apply(null, args); }, ms);
+    };
+  }
+
+  loadState();
+  renderManifest();
+  renderHistory();
+})();
+</script>
+</body>
+</html>
