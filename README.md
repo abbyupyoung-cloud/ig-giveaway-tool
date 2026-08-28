@@ -31,8 +31,8 @@
    - **手機**打開 Instagram App(網頁版沒有這個選項)→ 設定與隱私 → 應用程式和網站 → 測試人員邀請 → 接受
 
 5. **產生權杖**:回 App 後台「使用案例」→ Instagram 使用案例畫面「2. 產生存取權杖」→「新增帳號」,跳出的 IG 授權彈窗選你的帳號、按繼續。
-   - **重要**:繼續之後一定要看到一個列出「留言 / 私訊」等權限項目、要你按「允許」的畫面,才代表留言權限真的有給。如果按繼續後直接跳回 IG 首頁、完全沒看到權限列表,代表授權被中斷了,權杖只會有基本資料權限、留言 API 會回空值——這時候換個瀏覽器或用無痕視窗重試。
-   - 帳號成功加入後,表格裡該帳號那列會有「產生權杖」的藍字連結,點下去直接複製出 Token,**不用像舊版教學那樣去 Graph API Explorer**。
+   - **已知 bug**:這個彈窗常常在「選帳號→繼續」之後直接跳回 IG 首頁,完全不會出現列出「留言/私訊」權限、要你按「允許」的同意畫面——這樣拿到的 Token 只有帳號基本資料權限,呼叫留言 API 會回空值(即使 App 後台顯示該權限「可供測試」也一樣,因為問題出在使用者實際同意的範圍不夠,不是 App 設定)。換瀏覽器/無痕視窗重試偶爾有用,但不保證。
+   - **如果按鈕流程一直失敗,改用下面「手動授權(繞過按鈕 bug)」的方法**,成功率高很多。
    - 這個 Token 效期較短(約 1 小時),要換長效的話呼叫:
      ```
      GET https://graph.instagram.com/access_token
@@ -52,6 +52,30 @@
    GET https://graph.instagram.com/v21.0/me?fields=id,username&access_token={你的token}
    ```
    回傳的 `id` 才是要填進工具的 IG User ID。
+
+## 手動授權(繞過按鈕 bug)
+
+如果第 5 步的「新增帳號」按鈕一直讓你彈回 IG 首頁、拿不到有留言權限的 Token,改用這個方法——原理一樣,只是不透過 App 後台那個有 bug 的彈窗,直接組一個授權網址自己在瀏覽器打開:
+
+1. **註冊 Redirect URI**:App 後台「使用案例」→ Instagram 使用案例畫面「4. 設定 Instagram 商家登入」→「設定」,找到「有效的 OAuth 重新導向 URI」欄位,加入:
+   ```
+   https://abbyupyoung-cloud.github.io/ig-giveaway-tool/
+   ```
+   存檔。
+
+2. **組授權網址,直接貼在瀏覽器網址列打開**(不要用彈窗、不要用按鈕點出來,整條網址複製貼上按 Enter):
+   ```
+   https://www.instagram.com/oauth/authorize?client_id=1348796017242096&redirect_uri=https://abbyupyoung-cloud.github.io/ig-giveaway-tool/&response_type=code&scope=instagram_business_basic,instagram_business_manage_comments,instagram_business_manage_messages
+   ```
+   （`client_id` 是 Instagram 應用程式編號,如果你的 App 編號不同,換成你自己的）
+
+3. 這次應該會正常看到列出「留言/私訊」權限的同意畫面,按允許。同意後瀏覽器會跳轉到 `https://abbyupyoung-cloud.github.io/ig-giveaway-tool/?code=一長串英數字#_`,把網址列裡 `code=` 後面那一串(結尾的 `#_` 不用管)複製起來。
+
+4. 用 `exchange-code.ps1` 在本機把 code 換成 Token(App Secret 只留在你自己電腦,不會傳給任何人):
+   ```powershell
+   .\exchange-code.ps1 -Code "剛剛複製的code" -AppId "1348796017242096" -AppSecret "在應用程式設定→基本資料找,按顯示"
+   ```
+   跑完會印出 Token,以及這組 Token **實際拿到哪些權限**——一定要確認 `instagram_business_manage_comments` 有在清單裡,腳本會自動幫你檢查並提示。
 
 ## 每次活動的使用流程(推薦:本機版一站完成)
 
