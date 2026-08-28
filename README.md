@@ -16,37 +16,42 @@
 
 ## 一次性設定(之後每場活動不用重做)
 
-1. **確認 IG 帳號是專業帳號並已連結 Facebook 粉專**:IG App → 設定 → 帳號類型 → 切換成「專業帳號」,並在「連結的帳號」裡確認已連到你管理的 Facebook 粉專。
+這套工具走的是 Meta 目前的「**Instagram API with Instagram Login**」流程(不用連 Facebook 粉專),權杖開頭是 `IGAAT...`,呼叫網址是 `graph.instagram.com`(不是 `graph.facebook.com`,那是給另一套走 Facebook 登入的舊系統用的,兩邊權杖不通用)。
 
-2. **建立 Meta App**:前往 [developers.facebook.com](https://developers.facebook.com) → 我的應用程式 → 建立應用程式 → 類型選「商業」。建好之後你(建立者)自動是 App 的管理員。
+1. **確認 IG 帳號是專業帳號**:IG App → 設定 → 帳號類型 → 切換成「專業帳號」(商業或創作者皆可,不需要連 Facebook 粉專)。
 
-3. **加入 Instagram 相關產品**:在 App 控制台的「新增產品」裡加入 Instagram Graph API(介面可能顯示為「Instagram」,依 Meta 目前版本命名)。
+2. **建立 Meta App**:前往 [developers.facebook.com](https://developers.facebook.com) → 我的應用程式 → 建立應用程式 → 類型選「商業」。
 
-4. **用 Graph API Explorer 產生權杖**:前往 [developers.facebook.com/tools/explorer](https://developers.facebook.com/tools/explorer)
-   - 右上角選你剛建立的 App
-   - 「User or Page」選 User Token
-   - 權限勾選:`instagram_basic`、`instagram_manage_comments`、`pages_show_list`、`pages_read_engagement`
-   - 按「Generate Access Token」,依畫面用你自己的 Facebook 帳號登入並同意授權你管理的粉專
+3. **新增使用案例**:在 App 控制台左側點「使用案例」,選「**管理 Instagram 的訊息和內容**」(圖示是 IG 那個,不是 Messenger 或 WhatsApp),按繼續。這步會自動幫你加上 `instagram_business_basic`、`instagram_business_manage_comments`、`instagram_business_manage_messages` 三個權限。
 
-5. **換成長效權杖(60天)**:短效權杖幾小時就過期,用下面這支呼叫換成 60 天效期的長效權杖(App ID / App Secret 在 App 控制台「設定 > 基本資料」可以找到):
-   ```
-   GET https://graph.facebook.com/v20.0/oauth/access_token
-       ?grant_type=fb_exchange_token
-       &client_id={你的App ID}
-       &client_secret={你的App Secret}
-       &fb_exchange_token={上一步拿到的短效權杖}
-   ```
-   可以直接把這個網址貼到瀏覽器(帶著參數)按下 Enter 呼叫。回傳的 `access_token` 就是要用在下面腳本的權杖。60 天後失效時,重複第 4、5 步重新產生即可,不需要再走審查。
+4. **把你的 IG 帳號加為測試人員**(Development 模式下,只有被加為 Tester 的帳號能授權):
+   - App 後台左側「應用程式角色」→「角色」→「新增人員」
+   - 角色選「**Instagram 測試人員**」(不是上面那個籠統的「測試人員」)
+   - 搜尋欄輸入你的 IG 帳號(例如 `duralextaiwan`)送出邀請
+   - **手機**打開 Instagram App(網頁版沒有這個選項)→ 設定與隱私 → 應用程式和網站 → 測試人員邀請 → 接受
 
-6. **找出 IG User ID**:
+5. **產生權杖**:回 App 後台「使用案例」→ Instagram 使用案例畫面「2. 產生存取權杖」→「新增帳號」,跳出的 IG 授權彈窗選你的帳號、按繼續。
+   - **重要**:繼續之後一定要看到一個列出「留言 / 私訊」等權限項目、要你按「允許」的畫面,才代表留言權限真的有給。如果按繼續後直接跳回 IG 首頁、完全沒看到權限列表,代表授權被中斷了,權杖只會有基本資料權限、留言 API 會回空值——這時候換個瀏覽器或用無痕視窗重試。
+   - 帳號成功加入後,表格裡該帳號那列會有「產生權杖」的藍字連結,點下去直接複製出 Token,**不用像舊版教學那樣去 Graph API Explorer**。
+   - 這個 Token 效期較短(約 1 小時),要換長效的話呼叫:
+     ```
+     GET https://graph.instagram.com/access_token
+         ?grant_type=ig_exchange_token
+         &client_secret={App Secret,在「應用程式設定→基本資料」找}
+         &access_token={剛剛產生的短效token}
+     ```
+     回傳的 `access_token` 效期約 60 天。快到期前用這支延長(不用重新走授權):
+     ```
+     GET https://graph.instagram.com/refresh_access_token
+         ?grant_type=ig_refresh_token
+         &access_token={目前的長效token}
+     ```
+
+6. **找出 IG User ID**(注意:App 後台表格顯示的那組 ID 不是這裡要用的):
    ```
-   GET https://graph.facebook.com/v20.0/me/accounts?access_token={長效權杖}
+   GET https://graph.instagram.com/v21.0/me?fields=id,username&access_token={你的token}
    ```
-   找到對應粉專的 `id`,再呼叫:
-   ```
-   GET https://graph.facebook.com/v20.0/{粉專id}?fields=instagram_business_account&access_token={長效權杖}
-   ```
-   拿到的 `instagram_business_account.id` 就是 IG User ID,`find-media-id.ps1` 會用到。
+   回傳的 `id` 才是要填進工具的 IG User ID。
 
 ## 每次活動的使用流程(推薦:本機版一站完成)
 

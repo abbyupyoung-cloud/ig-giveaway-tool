@@ -18,7 +18,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$url = "https://graph.facebook.com/v20.0/$IgUserId/media?fields=id,permalink,caption,timestamp&access_token=$AccessToken&limit=25"
+$url = "https://graph.instagram.com/v21.0/$IgUserId/media?fields=id,permalink,caption,timestamp&access_token=$AccessToken&limit=25"
 
 do {
     $resp = Invoke-RestMethod -Uri $url -Method Get

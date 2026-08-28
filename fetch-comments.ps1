@@ -32,7 +32,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $fields = "id,text,username,timestamp"
-$url = "https://graph.facebook.com/v20.0/$MediaId/comments?fields=$fields&access_token=$AccessToken&limit=100"
+$url = "https://graph.instagram.com/v21.0/$MediaId/comments?fields=$fields&access_token=$AccessToken&limit=100"
 $all = @()
 
 Write-Host "抓取留言中..."

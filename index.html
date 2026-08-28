@@ -839,7 +839,7 @@
     if (/^\d{6,}$/.test(urlOrId.trim())) return urlOrId.trim();
 
     var target = normalizeUrl(urlOrId);
-    var url = "https://graph.facebook.com/v20.0/" + encodeURIComponent(igUserId) +
+    var url = "https://graph.instagram.com/v21.0/" + encodeURIComponent(igUserId) +
       "/media?fields=id,permalink&limit=100&access_token=" + encodeURIComponent(token);
     var scanned = 0;
     var maxScan = 300;
@@ -857,7 +857,7 @@
 
   async function fetchAllComments(token, mediaId) {
     var all = [];
-    var url = "https://graph.facebook.com/v20.0/" + encodeURIComponent(mediaId) +
+    var url = "https://graph.instagram.com/v21.0/" + encodeURIComponent(mediaId) +
       "/comments?fields=id,text,username,timestamp&limit=100&access_token=" + encodeURIComponent(token);
     while (url) {
       var data = await graphGet(url);
