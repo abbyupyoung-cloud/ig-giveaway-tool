@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   把手動授權網址拿到的 authorization code,交換成 Access Token(在本機執行,App Secret 不會傳給任何人)。
 

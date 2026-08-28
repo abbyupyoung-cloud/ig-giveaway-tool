@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   列出一個 IG 專業帳號最近的貼文,附 permalink 和 Media ID,方便找到目標貼文要用的 MediaId。
 

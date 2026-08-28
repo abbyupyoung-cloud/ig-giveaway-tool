@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   抓取一則 Instagram 貼文的留言(透過 Instagram Graph API),依 hashtag/關鍵字篩選,輸出 CSV。
 
